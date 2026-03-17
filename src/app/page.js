@@ -9,7 +9,8 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [isLoaded, setIsLoaded] = useState(false); // Para evitar problemas de hidratación en Next.js
   const [editingId, setEditingId] = useState(null); // Guardará el ID de la tarea que estamos editando
-
+  const [filter, setFilter] = useState("All"); 
+  const [searchQuery, setSearchQuery] = useState("");
 
   // HISTORIA 3: Cargar tareas de localStorage al montar el componente
   useEffect(() => {
@@ -76,12 +77,31 @@ export default function Home() {
     setEditingId(task.id);
   };
 
+  //Estado derivado para filtrar tareas
+  const filteredTasks = tasks.filter(task => {
+    // 1. Filtrar por estado (Radio buttons)
+    if (filter === "Completed" && !task.completed) return false;
+    if (filter === "Uncompleted" && task.completed) return false;
+
+    // 2. Filtrar por texto (Buscador)
+    const lowerQuery = searchQuery.toLowerCase();
+    const matchesSearch = task.title.toLowerCase().includes(lowerQuery) || 
+                          task.description.toLowerCase().includes(lowerQuery);
+    
+    return matchesSearch;
+  });
+
   // Prevenir renderizado hasta que el cliente cargue el localStorage
   if (!isLoaded) return null;
 
   return (
     <div className="min-h-screen bg-zinc-800 text-gray-200 font-sans">
-      <Navbar />
+      <Navbar 
+        filter={filter} 
+        setFilter={setFilter} 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+      />
 
       <main className="max-w-5xl mx-auto p-6">
         {/* Formulario de Agregar */}
@@ -125,12 +145,12 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {tasks.length === 0 ? (
+              {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="p-4 text-center text-zinc-500">No hay tareas pendientes.</td>
+                  <td colSpan="3" className="p-4 text-center text-zinc-500">No se encontraron tareas.</td>
                 </tr>
               ) : (
-                tasks.map((task) => (
+                filteredTasks.map((task) => (
                   <tr key={task.id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
                     {/* Aplicamos un estilo tachado si está completada para mejor UX */}
                     <td className={`p-4 ${task.completed ? 'line-through text-zinc-500' : ''}`}>
