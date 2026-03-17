@@ -42,4 +42,42 @@ describe('Página Principal - Sprint 1', () => {
     expect(savedTasks.length).toBe(1);
     expect(savedTasks[0].title).toBe('Aprender TDD');
   });
+
+  it('permite marcar una tarea como completada', () => {
+    render(<Home />);
+    
+    // 1. Agregamos una tarea primero
+    fireEvent.change(screen.getByPlaceholderText('Prueba1'), { target: { value: 'Tarea para completar' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    // 2. Buscamos el checkbox de la tarea (por su rol)
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).not.toBeChecked();
+
+    // 3. Simulamos el clic para completarla
+    fireEvent.click(checkbox);
+
+    // 4. Verificamos que ahora esté marcada
+    expect(checkbox).toBeChecked();
+  });
+
+  it('permite eliminar una tarea', () => {
+    render(<Home />);
+    
+    // 1. Agregamos una tarea
+    fireEvent.change(screen.getByPlaceholderText('Prueba1'), { target: { value: 'Tarea para borrar' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    // 2. Verificamos que exista
+    expect(screen.getByText('Tarea para borrar')).toBeInTheDocument();
+
+    // 3. Buscamos el botón de eliminar y hacemos clic
+    const deleteButton = screen.getByRole('button', { name: /🗑️/i }); // Usaremos un emoji como botón por simplicidad
+    fireEvent.click(deleteButton);
+
+    // 4. Verificamos que ya no esté en la pantalla
+    expect(screen.queryByText('Tarea para borrar')).not.toBeInTheDocument();
+  });
+
+
 });
