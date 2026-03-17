@@ -13,7 +13,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-describe('Página Principal - Sprint 1', () => {
+describe('Página Principal - Sprint 1 y 2', () => {
   beforeEach(() => {
     window.localStorage.clear(); // Limpiamos antes de cada prueba
   });
@@ -107,5 +107,38 @@ describe('Página Principal - Sprint 1', () => {
     expect(screen.queryByText('Tarea original')).not.toBeInTheDocument();
   });
 
+  it('filtra las tareas por estado y por texto de búsqueda', () => {
+    render(<Home />);
+    
+    // 1. Agregamos dos tareas (una la completaremos)
+    fireEvent.change(screen.getByPlaceholderText('Prueba1'), { target: { value: 'Aprender Next.js' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
 
+    fireEvent.change(screen.getByPlaceholderText('Prueba1'), { target: { value: 'Dominar TDD' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    // Completamos la primera tarea ("Aprender Next.js")
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]); 
+
+    // 2. Prueba de Filtro: Completadas
+    const completedRadio = screen.getByLabelText('Completed');
+    fireEvent.click(completedRadio);
+    expect(screen.getByText('Aprender Next.js')).toBeInTheDocument();
+    expect(screen.queryByText('Dominar TDD')).not.toBeInTheDocument();
+
+    // 3. Prueba de Filtro: Pendientes (Uncompleted)
+    const uncompletedRadio = screen.getByLabelText('Uncompleted');
+    fireEvent.click(uncompletedRadio);
+    expect(screen.queryByText('Aprender Next.js')).not.toBeInTheDocument();
+    expect(screen.getByText('Dominar TDD')).toBeInTheDocument();
+
+    // 4. Prueba de Búsqueda (Volvemos a "All" primero)
+    fireEvent.click(screen.getByLabelText('All'));
+    const searchInput = screen.getByPlaceholderText('Words');
+    fireEvent.change(searchInput, { target: { value: 'Next' } });
+
+    expect(screen.getByText('Aprender Next.js')).toBeInTheDocument();
+    expect(screen.queryByText('Dominar TDD')).not.toBeInTheDocument();
+  });
 });
