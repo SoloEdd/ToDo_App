@@ -79,5 +79,33 @@ describe('Página Principal - Sprint 1', () => {
     expect(screen.queryByText('Tarea para borrar')).not.toBeInTheDocument();
   });
 
+  it('permite editar una tarea existente', () => {
+    render(<Home />);
+    
+    // 1. Agregamos una tarea inicial
+    fireEvent.change(screen.getByPlaceholderText('Prueba1'), { target: { value: 'Tarea original' } });
+    fireEvent.change(screen.getByPlaceholderText('solo una prueba'), { target: { value: 'Descripción original' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add/i }));
+
+    // 2. Hacemos clic en el botón de editar
+    const editButton = screen.getByRole('button', { name: /✏️/i });
+    fireEvent.click(editButton);
+
+    // 3. Verificamos que los inputs se hayan llenado con los datos de la tarea
+    const titleInput = screen.getByDisplayValue('Tarea original');
+    expect(titleInput).toBeInTheDocument();
+
+    // 4. Modificamos el título y guardamos
+    fireEvent.change(titleInput, { target: { value: 'Tarea editada' } });
+    
+    // El botón debe haber cambiado a "Update"
+    const updateButton = screen.getByRole('button', { name: /Update/i });
+    fireEvent.click(updateButton);
+
+    // 5. Verificamos que el texto haya cambiado en la tabla
+    expect(screen.getByText('Tarea editada')).toBeInTheDocument();
+    expect(screen.queryByText('Tarea original')).not.toBeInTheDocument();
+  });
+
 
 });

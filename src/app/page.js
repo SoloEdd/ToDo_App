@@ -8,6 +8,8 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isLoaded, setIsLoaded] = useState(false); // Para evitar problemas de hidratación en Next.js
+  const [editingId, setEditingId] = useState(null); // Guardará el ID de la tarea que estamos editando
+
 
   // HISTORIA 3: Cargar tareas de localStorage al montar el componente
   useEffect(() => {
@@ -25,20 +27,31 @@ export default function Home() {
     }
   }, [tasks, isLoaded]);
 
-  // HISTORIA 2: Función para agregar una tarea
-  const handleAddTask = (e) => {
+  // HISTORIA 2 y 6: Manejar el formulario (Agregar o Actualizar)
+  const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim()) return; // Evitar tareas sin título
+    if (!title.trim()) return;
 
-    const newTask = {
-      id: crypto.randomUUID(), // Genera un ID único
-      title,
-      description,
-      completed: false,
-    };
+    if (editingId) {
+      // Si estamos editando, actualizamos la tarea existente
+      const updatedTasks = tasks.map(task => 
+        task.id === editingId ? { ...task, title, description } : task
+      );
+      setTasks(updatedTasks);
+      setEditingId(null); // Salimos del modo edición
+    } else {
+      // Si no estamos editando, creamos una nueva (como antes)
+      const newTask = {
+        id: crypto.randomUUID(),
+        title,
+        description,
+        completed: false,
+      };
+      setTasks([...tasks, newTask]);
+    }
 
-    setTasks([...tasks, newTask]);
-    setTitle(""); // Limpiar inputs
+    // Limpiamos los inputs en ambos casos
+    setTitle("");
     setDescription("");
   };
 
@@ -56,6 +69,13 @@ export default function Home() {
     setTasks(filteredTasks);
   };
 
+  // HISTORIA 6: Cargar datos en el formulario para editar
+  const handleEdit = (task) => {
+    setTitle(task.title);
+    setDescription(task.description);
+    setEditingId(task.id);
+  };
+
   // Prevenir renderizado hasta que el cliente cargue el localStorage
   if (!isLoaded) return null;
 
@@ -65,7 +85,7 @@ export default function Home() {
 
       <main className="max-w-5xl mx-auto p-6">
         {/* Formulario de Agregar */}
-        <form onSubmit={handleAddTask} className="flex gap-4 mb-8 bg-zinc-900 p-4 rounded-lg items-center">
+        <form onSubmit={handleSubmit} className="flex gap-4 mb-8 bg-zinc-900 p-4 rounded-lg items-center">
           <div className="flex items-center gap-2">
             <label className="font-semibold">Title</label>
             <input 
@@ -88,9 +108,9 @@ export default function Home() {
           </div>
           <button 
             type="submit"
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-1.5 rounded"
+            className={`${editingId ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} text-white px-6 py-1.5 rounded transition-colors`}
           >
-            Add
+            {editingId ? 'Update' : 'Add'}
           </button>
         </form>
 
@@ -131,7 +151,8 @@ export default function Home() {
                       {/* Botones de acción (Editar lo haremos en el siguiente paso) */}
                       <div className="flex gap-2 ml-auto">
                         <button 
-                          className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-sm"
+                          onClick={() => handleEdit(task)} // Agrega el evento onClick
+                          className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-sm transition-colors"
                           aria-label="✏️"
                         >
                           ✏️
