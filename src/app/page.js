@@ -111,17 +111,39 @@ export default function Home() {
                 </tr>
               ) : (
                 tasks.map((task) => (
-                  <tr key={task.id} className="border-b border-zinc-800">
-                    <td className="p-4">{task.title}</td>
-                    <td className="p-4">{task.description}</td>
-                    <td className="p-4">
-                      {/* El checkbox está inactivo en este Sprint */}
+                  <tr key={task.id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+                    {/* Aplicamos un estilo tachado si está completada para mejor UX */}
+                    <td className={`p-4 ${task.completed ? 'line-through text-zinc-500' : ''}`}>
+                      {task.title}
+                    </td>
+                    <td className={`p-4 ${task.completed ? 'line-through text-zinc-500' : ''}`}>
+                      {task.description}
+                    </td>
+                    <td className="p-4 flex items-center gap-4">
+                      {/* Checkbox ahora es interactivo */}
                       <input 
                         type="checkbox" 
                         checked={task.completed}
-                        readOnly
-                        className="w-4 h-4 cursor-pointer"
+                        onChange={() => handleToggleComplete(task.id)}
+                        className="w-5 h-5 cursor-pointer accent-blue-500"
                       />
+                      
+                      {/* Botones de acción (Editar lo haremos en el siguiente paso) */}
+                      <div className="flex gap-2 ml-auto">
+                        <button 
+                          className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-sm"
+                          aria-label="✏️"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(task.id)}
+                          className="bg-red-600 hover:bg-red-700 p-2 rounded text-sm"
+                          aria-label="🗑️"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
