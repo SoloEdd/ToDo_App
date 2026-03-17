@@ -42,6 +42,20 @@ export default function Home() {
     setDescription("");
   };
 
+  // HISTORIA 4: Marcar como completada
+  const handleToggleComplete = (id) => {
+    const updatedTasks = tasks.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+    setTasks(updatedTasks);
+  };
+
+  // HISTORIA 5: Eliminar tarea
+  const handleDelete = (id) => {
+    const filteredTasks = tasks.filter(task => task.id !== id);
+    setTasks(filteredTasks);
+  };
+
   // Prevenir renderizado hasta que el cliente cargue el localStorage
   if (!isLoaded) return null;
 
