@@ -1,35 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import { useTasks } from "@/hooks/useTasks"; // Importamos nuestro Custom Hook
 
 export default function Home() {
-  const [tasks, setTasks] = useState([]);
+  // 1. Extraemos la lógica de negocio y los datos desde el Hook
+  const { tasks, isLoaded, addTask, updateTask, toggleComplete, deleteTask } = useTasks();
+
+  // 2. Estados exclusivos de la Interfaz de Usuario (UI)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isLoaded, setIsLoaded] = useState(false); // Para evitar problemas de hidratación en Next.js
-  const [editingId, setEditingId] = useState(null); // Guardará el ID de la tarea que estamos editando
+  const [editingId, setEditingId] = useState(null); 
   const [filter, setFilter] = useState("All"); 
   const [searchQuery, setSearchQuery] = useState("");
-  const [error, setError] = useState(""); // Almacenará el mensaje de error actual
+  const [error, setError] = useState(""); 
 
-  // HISTORIA 3: Cargar tareas de localStorage al montar el componente
-  useEffect(() => {
-    const savedTasks = localStorage.getItem("todo_tasks");
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
-    setIsLoaded(true);
-  }, []);
-
-  // HISTORIA 3: Guardar en localStorage cada vez que el arreglo 'tasks' cambie
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("todo_tasks", JSON.stringify(tasks));
-    }
-  }, [tasks, isLoaded]);
-
-  // HISTORIA 2 y 6: Manejar el formulario con Validaciones Robustas
+  // HISTORIA 2 y 6: Manejar el formulario delegando al Hook
   const handleSubmit = (e) => {
     e.preventDefault();
     setError(""); // Limpiamos cualquier error anterior al intentar de nuevo
@@ -37,69 +24,36 @@ export default function Home() {
     const trimmedTitle = title.trim();
     const trimmedDesc = description.trim();
 
-    // Validación 1: Título vacío
+    // Validaciones de UI (Longitudes y vacíos)
     if (!trimmedTitle) {
       setError("El título es obligatorio.");
       return;
     }
-
-    // Validación 2: Longitud del título
     if (trimmedTitle.length > 50) {
       setError("El título no puede exceder los 50 caracteres.");
       return;
     }
-
-    // Validación 3: Longitud de la descripción
     if (trimmedDesc.length > 200) {
       setError("La descripción no puede exceder los 200 caracteres.");
       return;
     }
 
-    // Validación 4: Títulos duplicados (ignorando mayúsculas/minúsculas)
-    // Nos aseguramos de no comparar con la tarea que estamos editando actualmente
-    const isDuplicate = tasks.some(task => 
-      task.title.toLowerCase() === trimmedTitle.toLowerCase() && task.id !== editingId
-    );
-
-    if (isDuplicate) {
-      setError("Ya existe una tarea con este título.");
-      return;
+    try {
+      // Intentamos guardar o actualizar usando el Hook
+      if (editingId) {
+        updateTask(editingId, trimmedTitle, trimmedDesc);
+        setEditingId(null);
+      } else {
+        addTask(trimmedTitle, trimmedDesc);
+      }
+      
+      // Si el Hook no lanza errores, limpiamos los inputs
+      setTitle("");
+      setDescription("");
+    } catch (err) {
+      // Atrapamos errores de lógica (como títulos duplicados) que lanza el Hook
+      setError(err.message);
     }
-
-    // Si pasa todas las validaciones, procedemos a guardar o actualizar
-    if (editingId) {
-      const updatedTasks = tasks.map(task => 
-        task.id === editingId ? { ...task, title: trimmedTitle, description: trimmedDesc } : task
-      );
-      setTasks(updatedTasks);
-      setEditingId(null);
-    } else {
-      const newTask = {
-        id: crypto.randomUUID(),
-        title: trimmedTitle,
-        description: trimmedDesc,
-        completed: false,
-      };
-      setTasks([...tasks, newTask]);
-    }
-
-    // Limpiamos los inputs
-    setTitle("");
-    setDescription("");
-  };
-
-  // HISTORIA 4: Marcar como completada
-  const handleToggleComplete = (id) => {
-    const updatedTasks = tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    );
-    setTasks(updatedTasks);
-  };
-
-  // HISTORIA 5: Eliminar tarea
-  const handleDelete = (id) => {
-    const filteredTasks = tasks.filter(task => task.id !== id);
-    setTasks(filteredTasks);
   };
 
   // HISTORIA 6: Cargar datos en el formulario para editar
@@ -107,9 +61,10 @@ export default function Home() {
     setTitle(task.title);
     setDescription(task.description);
     setEditingId(task.id);
+    setError(""); // Limpiamos la alerta de error si el usuario decide editar otra cosa
   };
 
-  //Estado derivado para filtrar tareas
+  // Estado derivado para filtrar tareas
   const filteredTasks = tasks.filter(task => {
     // 1. Filtrar por estado (Radio buttons)
     if (filter === "Completed" && !task.completed) return false;
@@ -152,6 +107,7 @@ export default function Home() {
             </button>
           </div>
         )}
+        
         {/* Formulario de Agregar */}
         <form onSubmit={handleSubmit} className="flex gap-4 mb-8 bg-zinc-900 p-4 rounded-lg items-center">
           <div className="flex items-center gap-2">
@@ -161,7 +117,7 @@ export default function Home() {
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
-                setError("");
+                setError(""); // Limpia error al escribir
               }}
               className="bg-white text-black px-2 py-1 rounded w-48"
               placeholder="Prueba1"
@@ -174,7 +130,7 @@ export default function Home() {
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
-                setError("");
+                setError(""); // Limpia error al escribir
               }}
               className="bg-white text-black px-2 py-1 rounded w-full"
               placeholder="solo una prueba"
@@ -206,7 +162,6 @@ export default function Home() {
               ) : (
                 filteredTasks.map((task) => (
                   <tr key={task.id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
-                    {/* Aplicamos un estilo tachado si está completada para mejor UX */}
                     <td className={`p-4 ${task.completed ? 'line-through text-zinc-500' : ''}`}>
                       {task.title}
                     </td>
@@ -214,25 +169,27 @@ export default function Home() {
                       {task.description}
                     </td>
                     <td className="p-4 flex items-center gap-4">
-                      {/* Checkbox ahora es interactivo */}
+                      
+                      {/* Checkbox llamando a toggleComplete del Hook */}
                       <input 
                         type="checkbox" 
                         checked={task.completed}
-                        onChange={() => handleToggleComplete(task.id)}
+                        onChange={() => toggleComplete(task.id)}
                         className="w-5 h-5 cursor-pointer accent-blue-500"
                       />
                       
-                      {/* Botones de acción (Editar lo haremos en el siguiente paso) */}
                       <div className="flex gap-2 ml-auto">
                         <button 
-                          onClick={() => handleEdit(task)} // Agrega el evento onClick
+                          onClick={() => handleEdit(task)} 
                           className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-sm transition-colors"
                           aria-label="✏️"
                         >
                           ✏️
                         </button>
+                        
+                        {/* Botón de borrar llamando a deleteTask del Hook */}
                         <button 
-                          onClick={() => handleDelete(task.id)}
+                          onClick={() => deleteTask(task.id)}
                           className="bg-red-600 hover:bg-red-700 p-2 rounded text-sm"
                           aria-label="🗑️"
                         >
