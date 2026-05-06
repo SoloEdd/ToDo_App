@@ -11,6 +11,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState(null); // Guardará el ID de la tarea que estamos editando
   const [filter, setFilter] = useState("All"); 
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState(""); // Almacenará el mensaje de error actual
 
   // HISTORIA 3: Cargar tareas de localStorage al montar el componente
   useEffect(() => {
@@ -28,30 +29,61 @@ export default function Home() {
     }
   }, [tasks, isLoaded]);
 
-  // HISTORIA 2 y 6: Manejar el formulario (Agregar o Actualizar)
+  // HISTORIA 2 y 6: Manejar el formulario con Validaciones Robustas
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    setError(""); // Limpiamos cualquier error anterior al intentar de nuevo
 
+    const trimmedTitle = title.trim();
+    const trimmedDesc = description.trim();
+
+    // Validación 1: Título vacío
+    if (!trimmedTitle) {
+      setError("El título es obligatorio.");
+      return;
+    }
+
+    // Validación 2: Longitud del título
+    if (trimmedTitle.length > 50) {
+      setError("El título no puede exceder los 50 caracteres.");
+      return;
+    }
+
+    // Validación 3: Longitud de la descripción
+    if (trimmedDesc.length > 200) {
+      setError("La descripción no puede exceder los 200 caracteres.");
+      return;
+    }
+
+    // Validación 4: Títulos duplicados (ignorando mayúsculas/minúsculas)
+    // Nos aseguramos de no comparar con la tarea que estamos editando actualmente
+    const isDuplicate = tasks.some(task => 
+      task.title.toLowerCase() === trimmedTitle.toLowerCase() && task.id !== editingId
+    );
+
+    if (isDuplicate) {
+      setError("Ya existe una tarea con este título.");
+      return;
+    }
+
+    // Si pasa todas las validaciones, procedemos a guardar o actualizar
     if (editingId) {
-      // Si estamos editando, actualizamos la tarea existente
       const updatedTasks = tasks.map(task => 
-        task.id === editingId ? { ...task, title, description } : task
+        task.id === editingId ? { ...task, title: trimmedTitle, description: trimmedDesc } : task
       );
       setTasks(updatedTasks);
-      setEditingId(null); // Salimos del modo edición
+      setEditingId(null);
     } else {
-      // Si no estamos editando, creamos una nueva (como antes)
       const newTask = {
         id: crypto.randomUUID(),
-        title,
-        description,
+        title: trimmedTitle,
+        description: trimmedDesc,
         completed: false,
       };
       setTasks([...tasks, newTask]);
     }
 
-    // Limpiamos los inputs en ambos casos
+    // Limpiamos los inputs
     setTitle("");
     setDescription("");
   };
@@ -104,6 +136,22 @@ export default function Home() {
       />
 
       <main className="max-w-5xl mx-auto p-6">
+        {/* Alerta de Error UI */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-6 flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <span className="font-medium">{error}</span>
+            </div>
+            <button 
+              onClick={() => setError("")} 
+              className="text-red-400 hover:text-red-300 font-bold px-2"
+              aria-label="Cerrar alerta"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* Formulario de Agregar */}
         <form onSubmit={handleSubmit} className="flex gap-4 mb-8 bg-zinc-900 p-4 rounded-lg items-center">
           <div className="flex items-center gap-2">
@@ -111,7 +159,10 @@ export default function Home() {
             <input 
               type="text" 
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setError("");
+              }}
               className="bg-white text-black px-2 py-1 rounded w-48"
               placeholder="Prueba1"
             />
@@ -121,7 +172,10 @@ export default function Home() {
             <input 
               type="text" 
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setError("");
+              }}
               className="bg-white text-black px-2 py-1 rounded w-full"
               placeholder="solo una prueba"
             />
@@ -130,7 +184,7 @@ export default function Home() {
             type="submit"
             className={`${editingId ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} text-white px-6 py-1.5 rounded transition-colors`}
           >
-            {editingId ? 'Update' : 'Add'}
+            {editingId ? 'Update' : 'Add'} 
           </button>
         </form>
 

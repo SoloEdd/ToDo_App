@@ -141,4 +141,25 @@ describe('Página Principal - Sprint 1 y 2', () => {
     expect(screen.getByText('Aprender Next.js')).toBeInTheDocument();
     expect(screen.queryByText('Dominar TDD')).not.toBeInTheDocument();
   });
+
+  it('muestra alertas de error para validaciones robustas', () => {
+    render(<Home />);
+    
+    const titleInput = screen.getByPlaceholderText('Prueba1');
+    const addButton = screen.getByRole('button', { name: /Add/i });
+
+    // 1. Prueba: Intentar guardar sin título
+    fireEvent.click(addButton);
+    expect(screen.getByText('El título es obligatorio.')).toBeInTheDocument();
+
+    // 2. Prueba: Título duplicado
+    // Primero agregamos una tarea válida
+    fireEvent.change(titleInput, { target: { value: 'Tarea Única' } });
+    fireEvent.click(addButton);
+    
+    // Luego intentamos agregarla de nuevo
+    fireEvent.change(titleInput, { target: { value: 'Tarea Única' } });
+    fireEvent.click(addButton);
+    expect(screen.getByText('Ya existe una tarea con este título.')).toBeInTheDocument();
+  });
 });
